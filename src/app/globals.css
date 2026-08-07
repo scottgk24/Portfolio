@@ -1,0 +1,229 @@
+@import "tailwindcss";
+
+:root {
+  --desk-ink: #e8edf4;
+  --desk-fog: rgba(12, 16, 24, 0.72);
+  --desk-glass: rgba(22, 28, 38, 0.55);
+  --desk-line: rgba(255, 255, 255, 0.12);
+  --dock-bg: rgba(18, 22, 30, 0.55);
+  --menubar-bg: rgba(10, 12, 18, 0.55);
+  --window-bg: #1a1e26;
+  --window-chrome: #222730;
+  --window-ink: #e8edf4;
+  --window-muted: #9aa3b0;
+  --window-body: #c5ccd6;
+}
+
+@theme inline {
+  --font-sans: var(--font-outfit);
+  --font-display: var(--font-fraunces);
+  --font-brand: var(--font-syne);
+}
+
+.font-brand {
+  font-family: var(--font-syne), system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-fraunces), Georgia, serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--desk-ink);
+  font-family: var(--font-outfit), system-ui, sans-serif;
+  background: #07090e;
+  color-scheme: dark;
+}
+
+::selection {
+  background: rgba(56, 189, 248, 0.35);
+}
+
+@keyframes wallpaper-drift {
+  0%,
+  100% {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  50% {
+    transform: scale(1.04) translate3d(-1%, 1%, 0);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes preview-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bounce-dot {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes name-shine {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+@keyframes name-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.92) rotate(-1deg);
+    filter: blur(6px);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+    filter: blur(0);
+  }
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes spark-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translate3d(4px, -10px, 0) scale(1.15);
+    opacity: 1;
+  }
+}
+
+.wallpaper-drift {
+  animation: wallpaper-drift 28s ease-in-out infinite;
+}
+
+.rise {
+  animation: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.rise-delay-1 {
+  animation-delay: 0.12s;
+}
+
+.rise-delay-2 {
+  animation-delay: 0.24s;
+}
+
+.preview-in {
+  animation: preview-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.dock-dot {
+  animation: bounce-dot 1.8s ease-in-out infinite;
+}
+
+.name-pop {
+  animation: name-pop 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.name-shine {
+  background-size: 200% 100%;
+  animation: name-shine 4.5s linear infinite;
+}
+
+.glow-pulse {
+  animation: glow-pulse 3.2s ease-in-out infinite;
+}
+
+.spark-float {
+  animation: spark-float 2.8s ease-in-out infinite;
+}
+
+.spark-float-delay {
+  animation-delay: 0.6s;
+}
+
+@keyframes sticky-settle {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) rotate(var(--sticky-tilt, 0deg)) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(var(--sticky-tilt, 0deg)) scale(1);
+  }
+}
+
+.sticky-note {
+  transform: rotate(var(--sticky-tilt, 0deg));
+  animation: sticky-settle 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 14px 28px rgba(0, 0, 0, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.sticky-note:nth-child(1) {
+  animation-delay: 0.35s;
+}
+
+.sticky-note:nth-child(2) {
+  animation-delay: 0.48s;
+}
+
+.sticky-note:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wallpaper-drift,
+  .rise,
+  .preview-in,
+  .dock-dot,
+  .name-pop,
+  .name-shine,
+  .glow-pulse,
+  .spark-float,
+  .sticky-note {
+    animation: none !important;
+  }
+}
