@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Outfit, Syne } from "next/font/google";
 import "./globals.css";
 
@@ -24,6 +24,13 @@ export const metadata: Metadata = {
   title: "Scott Kluempke — Portfolio",
   description:
     "Selected work by Scott Kluempke — family apps, budgeting tools, photography sites, and Mac utilities.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#07090e",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
