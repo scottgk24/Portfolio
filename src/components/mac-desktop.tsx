@@ -31,24 +31,36 @@ function formatClock(now: Date, compact: boolean) {
   );
 }
 
+const SERVER_CLOCK = {
+  compact: "Aug 6  7:00 PM",
+  full: "Fri Aug 6  7:00 PM",
+};
+
+let clientClock = SERVER_CLOCK;
+
+function readClock() {
+  const now = new Date();
+  const next = {
+    compact: formatClock(now, true),
+    full: formatClock(now, false),
+  };
+  if (
+    next.compact === clientClock.compact &&
+    next.full === clientClock.full
+  ) {
+    return clientClock;
+  }
+  clientClock = next;
+  return clientClock;
+}
+
 function useClock() {
   const subscribe = useCallback((onStoreChange: () => void) => {
     const id = window.setInterval(onStoreChange, 30_000);
     return () => window.clearInterval(id);
   }, []);
 
-  const getSnapshot = () => {
-    const now = new Date();
-    return {
-      compact: formatClock(now, true),
-      full: formatClock(now, false),
-    };
-  };
-
-  return useSyncExternalStore(subscribe, getSnapshot, () => ({
-    compact: "Aug 6  7:00 PM",
-    full: "Fri Aug 6  7:00 PM",
-  }));
+  return useSyncExternalStore(subscribe, readClock, () => SERVER_CLOCK);
 }
 
 export function MacDesktop() {
@@ -114,13 +126,21 @@ export function MacDesktop() {
 
       <MenuBar
         clock={clock}
-        onOpenAbout={() => setAboutOpen(true)}
+        onOpenAbout={() => {
+          setPinnedId(null);
+          setActiveId(null);
+          setAboutOpen(true);
+        }}
         onOpenPortfolio={showFirstProject}
       />
 
       <DesktopStage
         aboutOpen={aboutOpen}
-        onOpenAbout={() => setAboutOpen(true)}
+        onOpenAbout={() => {
+          setPinnedId(null);
+          setActiveId(null);
+          setAboutOpen(true);
+        }}
         onCloseAbout={() => setAboutOpen(false)}
       />
 
@@ -654,7 +674,7 @@ function Dock({
               type="button"
               title={project.name}
               aria-label={`${project.name}. ${project.tagline}`}
-              className="group relative flex w-11 shrink-0 flex-col items-center sm:w-16"
+              className="group relative flex w-12 shrink-0 flex-col items-center sm:w-16"
               style={{
                 transform: `translateY(${isHot ? -12 : 0}px) scale(${scale})`,
                 transition: "transform 160ms cubic-bezier(0.22, 1, 0.36, 1)",
@@ -670,7 +690,7 @@ function Dock({
               onClick={() => onSelect(project)}
             >
               <span
-                className="relative block size-11 overflow-hidden rounded-[22%] shadow-[0_8px_18px_rgba(0,0,0,0.28)] ring-1 ring-white/25 sm:size-14"
+                className="relative block size-12 overflow-hidden rounded-[22%] shadow-[0_8px_18px_rgba(0,0,0,0.28)] ring-1 ring-white/25 sm:size-14"
                 style={{ background: project.surface }}
               >
                 <Image
