@@ -8,7 +8,6 @@ Interactive Mac desktop portfolio. Apps live in the dock — hover for a preview
 - **SAGE** — household + business budgeting
 - **Porchlight Studios** — photography marketing site
 - **AutoCropper** — Mac desktop batch cropper
-- **Paws & Pathways** — dog-walking booking site
 
 ## Develop
 
