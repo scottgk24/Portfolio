@@ -587,7 +587,9 @@ function PreviewWindow({
                 </button>
               ) : (
                 <span className="rounded-md bg-white/5 px-3 py-1.5 text-[12px] text-[var(--window-muted)]">
-                  Mac desktop app
+                  {project.type === "Desktop app"
+                    ? "Mac desktop app"
+                    : "Coming soon"}
                 </span>
               )}
               {pinned ? (
