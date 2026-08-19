@@ -11,24 +11,56 @@ import {
 } from "react";
 import { projects, type Project } from "@/data/projects";
 
+function formatClock(now: Date, compact: boolean) {
+  return now.toLocaleString(
+    "en-US",
+    compact
+      ? {
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        }
+      : {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        },
+  );
+}
+
+const SERVER_CLOCK = {
+  compact: "Aug 6  7:00 PM",
+  full: "Fri Aug 6  7:00 PM",
+};
+
+let clientClock = SERVER_CLOCK;
+
+function readClock() {
+  const now = new Date();
+  const next = {
+    compact: formatClock(now, true),
+    full: formatClock(now, false),
+  };
+  if (
+    next.compact === clientClock.compact &&
+    next.full === clientClock.full
+  ) {
+    return clientClock;
+  }
+  clientClock = next;
+  return clientClock;
+}
+
 function useClock() {
   const subscribe = useCallback((onStoreChange: () => void) => {
     const id = window.setInterval(onStoreChange, 30_000);
     return () => window.clearInterval(id);
   }, []);
 
-  const getSnapshot = () => {
-    const now = new Date();
-    return now.toLocaleString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
-
-  return useSyncExternalStore(subscribe, getSnapshot, () => "Fri Aug 6  7:00 PM");
+  return useSyncExternalStore(subscribe, readClock, () => SERVER_CLOCK);
 }
 
 export function MacDesktop() {
@@ -94,13 +126,21 @@ export function MacDesktop() {
 
       <MenuBar
         clock={clock}
-        onOpenAbout={() => setAboutOpen(true)}
+        onOpenAbout={() => {
+          setPinnedId(null);
+          setActiveId(null);
+          setAboutOpen(true);
+        }}
         onOpenPortfolio={showFirstProject}
       />
 
       <DesktopStage
         aboutOpen={aboutOpen}
-        onOpenAbout={() => setAboutOpen(true)}
+        onOpenAbout={() => {
+          setPinnedId(null);
+          setActiveId(null);
+          setAboutOpen(true);
+        }}
         onCloseAbout={() => setAboutOpen(false)}
       />
 
@@ -129,13 +169,15 @@ export function MacDesktop() {
         }}
         onLeave={scheduleLeave}
         onSelect={(project) => {
-          if (project.href) {
-            openProject(project);
+          clearLeaveTimer();
+          setAboutOpen(false);
+          if (pinnedId === project.id) {
+            setPinnedId(null);
+            setActiveId(null);
             return;
           }
-          setPinnedId((current) =>
-            current === project.id ? null : project.id,
-          );
+          setPinnedId(project.id);
+          setActiveId(project.id);
         }}
       />
     </div>
@@ -174,21 +216,21 @@ function MenuBar({
   onOpenAbout,
   onOpenPortfolio,
 }: {
-  clock: string;
+  clock: { compact: string; full: string };
   onOpenAbout: () => void;
   onOpenPortfolio: () => void;
 }) {
   return (
-    <header className="absolute inset-x-0 top-0 z-40">
+    <header className="absolute inset-x-0 top-0 z-40 pt-[env(safe-area-inset-top)]">
       <div
-        className="flex h-8 items-center justify-between px-3 text-[13px] font-medium text-white/95 backdrop-blur-xl sm:px-4"
+        className="flex h-8 items-center justify-between gap-3 px-3 text-[13px] font-medium text-white/95 backdrop-blur-xl sm:px-4"
         style={{ background: "var(--menubar-bg)" }}
       >
         <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           <button
             type="button"
             onClick={onOpenAbout}
-            className="font-brand truncate bg-gradient-to-r from-white via-[#ffe7a3] to-[#9aecff] bg-clip-text text-[14px] font-extrabold tracking-tight text-transparent"
+            className="font-brand truncate bg-gradient-to-r from-white via-[#ffe7a3] to-[#9aecff] bg-clip-text text-[13px] font-extrabold tracking-tight text-transparent sm:text-[14px]"
           >
             Scott Kluempke
           </button>
@@ -207,7 +249,10 @@ function MenuBar({
             Portfolio
           </button>
         </div>
-        <div className="shrink-0 tabular-nums text-white/90">{clock}</div>
+        <div className="shrink-0 tabular-nums text-[12px] text-white/90 sm:text-[13px]">
+          <span className="sm:hidden">{clock.compact}</span>
+          <span className="hidden sm:inline">{clock.full}</span>
+        </div>
       </div>
     </header>
   );
@@ -274,8 +319,8 @@ function DesktopStage({
   onCloseAbout: () => void;
 }) {
   return (
-    <div className="absolute inset-0 z-10 px-5 pt-14 sm:px-8">
-      <div className="relative z-20 max-w-xl pt-4 sm:max-w-2xl sm:pt-8 lg:max-w-3xl">
+    <div className="absolute inset-0 z-10 px-4 pt-14 sm:px-8">
+      <div className="relative z-20 max-w-xl pt-3 sm:max-w-2xl sm:pt-8 lg:max-w-3xl">
         <div
           aria-hidden
           className="glow-pulse pointer-events-none absolute -left-8 top-4 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgba(200,140,70,0.28),transparent_70%)] blur-2xl sm:h-56 sm:w-56"
@@ -290,7 +335,7 @@ function DesktopStage({
           Portfolio · Built to ship
         </p>
 
-        <h1 className="name-pop relative mt-3 font-brand text-[clamp(2.8rem,10vw,6.5rem)] leading-[0.88] font-extrabold tracking-[-0.04em] sm:text-[clamp(3.2rem,11vw,7rem)]">
+        <h1 className="name-pop relative mt-3 font-brand text-[clamp(2.45rem,11.5vw,6.5rem)] leading-[0.9] font-extrabold tracking-[-0.04em] sm:text-[clamp(3.2rem,11vw,7rem)] sm:leading-[0.88]">
           <span
             className="name-shine bg-clip-text text-transparent"
             style={{
@@ -313,25 +358,28 @@ function DesktopStage({
           </span>
           <span
             aria-hidden
-            className="spark-float absolute -top-1 right-[10%] size-2.5 rotate-45 bg-[#e8c878] shadow-[0_0_16px_rgba(232,200,120,0.7)] sm:size-3"
+            className="spark-float absolute -top-1 right-[8%] size-2 rotate-45 bg-[#e8c878] shadow-[0_0_16px_rgba(232,200,120,0.7)] sm:-top-1 sm:right-[10%] sm:size-3"
           />
           <span
             aria-hidden
-            className="spark-float spark-float-delay absolute top-[46%] -right-1 size-2 rotate-45 bg-[#7ec8d8] shadow-[0_0_14px_rgba(126,200,216,0.7)] sm:right-3"
+            className="spark-float spark-float-delay absolute top-[46%] -right-0.5 size-1.5 rotate-45 bg-[#7ec8d8] shadow-[0_0_14px_rgba(126,200,216,0.7)] sm:size-2 sm:right-3"
           />
         </h1>
 
-        <p className="rise rise-delay-1 mt-5 max-w-lg font-display text-xl text-white/90 sm:text-2xl">
+        <p className="rise rise-delay-1 mt-4 max-w-lg font-display text-lg text-white/90 sm:mt-5 sm:text-2xl">
           Tools for families, studios, and everyday work.
         </p>
-        <p className="rise rise-delay-2 mt-3 max-w-md text-sm leading-relaxed text-white/60 sm:text-base">
-          Hover an app in the dock for a preview. Click to open it.
+        <p className="rise rise-delay-2 mt-2.5 max-w-md text-sm leading-relaxed text-white/60 sm:mt-3 sm:text-base">
+          <span className="sm:hidden">Tap an app in the dock to preview it.</span>
+          <span className="hidden sm:inline">
+            Hover an app in the dock for a preview. Click to open it.
+          </span>
         </p>
 
         <button
           type="button"
           onClick={onOpenAbout}
-          className="rise rise-delay-2 group mt-6 inline-flex items-center gap-3 rounded-2xl bg-white/8 px-3 py-2.5 text-left ring-1 ring-white/20 backdrop-blur-md transition hover:bg-white/14 hover:ring-white/35 sm:mt-7"
+          className="rise rise-delay-2 group mt-5 inline-flex items-center gap-3 rounded-2xl bg-white/8 px-3 py-2.5 text-left ring-1 ring-white/20 backdrop-blur-md transition hover:bg-white/14 hover:ring-white/35 sm:mt-7"
         >
           <span className="flex size-11 shrink-0 items-center justify-center rounded-[18%] bg-gradient-to-br from-[#e8c878]/35 to-[#7ec8d8]/25 text-white shadow-[0_8px_20px_rgba(0,0,0,0.35)] ring-1 ring-white/25 sm:size-12">
             <span className="font-display text-[1.25rem] leading-none">i</span>
@@ -341,7 +389,7 @@ function DesktopStage({
               About Me
             </span>
             <span className="mt-0.5 block text-[11px] text-white/55 sm:text-xs">
-              How I work
+              How I work · tools & stack
             </span>
           </span>
         </button>
@@ -353,12 +401,6 @@ function DesktopStage({
         ))}
       </div>
 
-      <div className="absolute right-4 bottom-[7.5rem] left-4 z-10 flex gap-3 overflow-x-auto pb-1 lg:hidden">
-        {stickyNotes.map((note) => (
-          <StickyNote key={note.id} note={note} mobile />
-        ))}
-      </div>
-
       {aboutOpen ? <AboutWindow onClose={onCloseAbout} /> : null}
     </div>
   );
@@ -366,22 +408,16 @@ function DesktopStage({
 
 function StickyNote({
   note,
-  mobile = false,
 }: {
   note: (typeof stickyNotes)[number];
-  mobile?: boolean;
 }) {
   return (
     <aside
-      className={
-        mobile
-          ? "sticky-note relative pointer-events-auto w-[200px] shrink-0 rounded-sm px-3.5 py-3"
-          : `sticky-note absolute pointer-events-auto w-[200px] rounded-sm px-3.5 py-3 lg:w-[220px] ${note.position}`
-      }
+      className={`sticky-note absolute pointer-events-auto w-[200px] rounded-sm px-3.5 py-3 lg:w-[220px] ${note.position}`}
       style={{
         background: note.tint,
         color: note.ink,
-        ["--sticky-tilt" as string]: mobile ? "0deg" : note.tilt,
+        ["--sticky-tilt" as string]: note.tilt,
       }}
     >
       <div
@@ -419,9 +455,9 @@ function StickyNote({
 
 function AboutWindow({ onClose }: { onClose: () => void }) {
   return (
-    <div className="preview-in absolute top-1/2 left-1/2 z-30 w-[min(92vw,440px)] -translate-x-1/2 -translate-y-[42%] overflow-hidden rounded-xl bg-[var(--window-bg)] shadow-[0_30px_80px_rgba(0,0,0,0.65)] ring-1 ring-white/10">
+    <div className="preview-in absolute inset-x-3 top-[max(3.5rem,env(safe-area-inset-top)+2.75rem)] z-30 mx-auto max-h-[min(78dvh,calc(100dvh-8.5rem))] w-[min(92vw,440px)] overflow-hidden rounded-xl bg-[var(--window-bg)] shadow-[0_30px_80px_rgba(0,0,0,0.65)] ring-1 ring-white/10 sm:inset-x-auto sm:top-1/2 sm:left-1/2 sm:max-h-[min(80dvh,640px)] sm:w-[min(92vw,440px)] sm:-translate-x-1/2 sm:-translate-y-[42%]">
       <WindowChrome title="About — Scott Kluempke" onClose={onClose} />
-      <div className="space-y-4 px-5 py-5 text-sm leading-relaxed text-[var(--window-body)] sm:px-6">
+      <div className="max-h-[calc(min(78dvh,calc(100dvh-8.5rem))-2.5rem)] space-y-4 overflow-y-auto overscroll-contain px-5 py-5 text-sm leading-relaxed text-[var(--window-body)] sm:max-h-[calc(min(80dvh,640px)-2.5rem)] sm:px-6">
         <p className="font-display text-2xl text-[var(--window-ink)]">
           How I work
         </p>
@@ -432,8 +468,43 @@ function AboutWindow({ onClose }: { onClose: () => void }) {
         </p>
         <p className="text-[13px] text-[var(--window-muted)]">
           One paid tool: Cursor at $20/mo. Everything else runs on free or hobby
-          tiers — see the sticky notes on the desk.
+          tiers.
         </p>
+
+        <div className="grid gap-3 pt-1 lg:hidden">
+          {stickyNotes.map((note) => (
+            <div
+              key={note.id}
+              className="rounded-lg px-3.5 py-3"
+              style={{ background: note.tint, color: note.ink }}
+            >
+              <p
+                className="font-display text-[15px] font-semibold tracking-tight"
+                style={{ color: note.ink }}
+              >
+                {note.title}
+              </p>
+              <ul className="mt-2 space-y-1.5">
+                {note.lines.map((line) => (
+                  <li
+                    key={line.name}
+                    className="flex items-baseline justify-between gap-2 text-[11px] leading-snug"
+                  >
+                    <span className="min-w-0">{line.name}</span>
+                    {"cost" in line && line.cost ? (
+                      <span
+                        className="shrink-0 font-medium tabular-nums"
+                        style={{ color: note.muted }}
+                      >
+                        {line.cost}
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -451,86 +522,93 @@ function PreviewWindow({
   onOpen: () => void;
 }) {
   return (
-    <div className="preview-in pointer-events-auto absolute bottom-[7.5rem] left-1/2 z-30 w-[min(92vw,560px)] -translate-x-1/2 overflow-hidden rounded-xl bg-[var(--window-bg)] shadow-[0_28px_80px_rgba(0,0,0,0.7)] ring-1 ring-white/10 sm:bottom-[8.5rem]">
+    <div className="preview-in pointer-events-auto absolute inset-x-3 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-30 mx-auto max-h-[min(62dvh,calc(100dvh-9.5rem))] w-[min(94vw,560px)] overflow-hidden rounded-xl bg-[var(--window-bg)] shadow-[0_28px_80px_rgba(0,0,0,0.7)] ring-1 ring-white/10 sm:inset-x-auto sm:bottom-[8.5rem] sm:left-1/2 sm:max-h-[min(70dvh,560px)] sm:w-[min(92vw,560px)] sm:-translate-x-1/2">
       <WindowChrome
         title={`${project.name} — ${project.type}`}
         onClose={onClose}
       />
-      <div className="grid gap-0 sm:grid-cols-[1.15fr_0.85fr]">
-        <div
-          className="relative min-h-[180px] sm:min-h-[220px]"
-          style={{ background: project.surface }}
-        >
-          <Image
-            src={project.screenshot.src}
-            alt={project.screenshot.alt}
-            fill
-            className="object-cover object-top"
-            sizes="(max-width: 640px) 92vw, 320px"
-          />
-        </div>
-        <div className="flex flex-col justify-between px-4 py-4 sm:px-5">
-          <div>
-            <div className="flex items-center gap-3">
-              <div
-                className="relative size-12 overflow-hidden rounded-[22%] shadow-md ring-1 ring-white/15"
-                style={{ background: project.surface }}
-              >
-                <Image
-                  src={project.logo.src}
-                  alt=""
-                  fill
-                  className={
-                    project.logo.fill
-                      ? "object-cover"
-                      : "object-contain p-1.5"
-                  }
-                  sizes="48px"
-                />
-              </div>
-              <div>
-                <p className="font-brand text-lg font-bold tracking-tight text-[var(--window-ink)]">
-                  {project.name}
-                </p>
-                <p className="text-xs text-[var(--window-muted)]">
-                  {project.tagline}
-                </p>
-              </div>
-            </div>
-            <p className="mt-3 text-[13px] leading-relaxed text-[var(--window-body)]">
-              {project.description}
-            </p>
-            <p className="mt-3 text-[11px] tracking-wide text-[var(--window-muted)] uppercase">
-              {project.stack.join(" · ")}
-            </p>
+      <div className="max-h-[calc(min(62dvh,calc(100dvh-9.5rem))-2.5rem)] overflow-y-auto overscroll-contain sm:max-h-[calc(min(70dvh,560px)-2.5rem)]">
+        <div className="grid gap-0 sm:grid-cols-[1.15fr_0.85fr]">
+          <div
+            className="relative min-h-[150px] sm:min-h-[220px]"
+            style={{ background: project.surface }}
+          >
+            <Image
+              src={project.screenshot.src}
+              alt={project.screenshot.alt}
+              fill
+              className="object-cover object-top"
+              sizes="(max-width: 640px) 94vw, 320px"
+            />
           </div>
-          <div className="mt-4 flex items-center gap-3">
-            {project.href ? (
-              <button
-                type="button"
-                onClick={onOpen}
-                className="rounded-md bg-[#3b82f6] px-3.5 py-1.5 text-[13px] font-medium text-white transition hover:bg-[#2563eb]"
-              >
-                Open App
-              </button>
-            ) : (
-              <span className="rounded-md bg-white/5 px-3 py-1.5 text-[12px] text-[var(--window-muted)]">
-                Mac desktop app
-              </span>
-            )}
-            {pinned ? (
-              <button
-                type="button"
-                onClick={onClose}
-                className="text-[12px] text-[var(--window-muted)] underline-offset-2 hover:underline"
-              >
-                Close
-              </button>
-            ) : (
-              <span className="text-[12px] text-[var(--window-muted)]">
-                Click the dock icon to open
-              </span>
-            )}
+          <div className="flex flex-col justify-between px-4 py-4 sm:px-5">
+            <div>
+              <div className="flex items-center gap-3">
+                <div
+                  className="relative size-11 shrink-0 overflow-hidden rounded-[22%] shadow-md ring-1 ring-white/15 sm:size-12"
+                  style={{ background: project.surface }}
+                >
+                  <Image
+                    src={project.logo.src}
+                    alt=""
+                    fill
+                    className={
+                      project.logo.fill
+                        ? "object-cover"
+                        : "object-contain p-1.5"
+                    }
+                    sizes="48px"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-brand text-base font-bold tracking-tight text-[var(--window-ink)] sm:text-lg">
+                    {project.name}
+                  </p>
+                  <p className="text-xs text-[var(--window-muted)]">
+                    {project.tagline}
+                  </p>
+                </div>
+              </div>
+              <p className="mt-3 text-[13px] leading-relaxed text-[var(--window-body)]">
+                {project.description}
+              </p>
+              <p className="mt-3 text-[11px] tracking-wide text-[var(--window-muted)] uppercase">
+                {project.stack.join(" · ")}
+              </p>
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              {project.href ? (
+                <button
+                  type="button"
+                  onClick={onOpen}
+                  className="rounded-md bg-[#3b82f6] px-3.5 py-1.5 text-[13px] font-medium text-white transition hover:bg-[#2563eb]"
+                >
+                  Open App
+                </button>
+              ) : (
+                <span className="rounded-md bg-white/5 px-3 py-1.5 text-[12px] text-[var(--window-muted)]">
+                  {project.type === "Desktop app"
+                    ? "Mac desktop app"
+                    : "Coming soon"}
+                </span>
+              )}
+              {pinned ? (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="text-[12px] text-[var(--window-muted)] underline-offset-2 hover:underline"
+                >
+                  Close
+                </button>
+              ) : (
+                <span className="text-[12px] text-[var(--window-muted)]">
+                  <span className="sm:hidden">Tap the dock icon again to pin</span>
+                  <span className="hidden sm:inline">
+                    Click the dock icon to open
+                  </span>
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -578,10 +656,10 @@ function Dock({
   const [hovered, setHovered] = useState<string | null>(null);
 
   return (
-    <div className="absolute inset-x-0 bottom-3 z-40 flex justify-center px-3 sm:bottom-5">
+    <div className="absolute inset-x-0 bottom-0 z-40 flex justify-center px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:bottom-0 sm:px-3 sm:pb-[max(1.25rem,env(safe-area-inset-bottom))]">
       <nav
         aria-label="Applications"
-        className="flex items-end gap-4 rounded-[26px] px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.55)] ring-1 ring-white/15 backdrop-blur-2xl sm:gap-5 sm:px-5 sm:py-3.5"
+        className="flex max-w-full items-end gap-2.5 overflow-x-auto rounded-[22px] px-3 py-2.5 shadow-[0_18px_50px_rgba(0,0,0,0.55)] ring-1 ring-white/15 backdrop-blur-2xl sm:gap-5 sm:overflow-visible sm:rounded-[26px] sm:px-5 sm:py-3.5"
         style={{ background: "var(--dock-bg)" }}
         onMouseLeave={() => {
           setHovered(null);
@@ -598,7 +676,7 @@ function Dock({
               type="button"
               title={project.name}
               aria-label={`${project.name}. ${project.tagline}`}
-              className="group relative flex w-14 flex-col items-center sm:w-16"
+              className="group relative flex w-12 shrink-0 flex-col items-center sm:w-16"
               style={{
                 transform: `translateY(${isHot ? -12 : 0}px) scale(${scale})`,
                 transition: "transform 160ms cubic-bezier(0.22, 1, 0.36, 1)",
@@ -634,7 +712,7 @@ function Dock({
                   activeId === project.id ? "opacity-100" : "opacity-0"
                 }`}
               />
-              <span className="pointer-events-none absolute -top-9 rounded-md bg-black/70 px-2 py-0.5 text-[11px] whitespace-nowrap text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100 group-focus:opacity-100">
+              <span className="pointer-events-none absolute -top-9 hidden rounded-md bg-black/70 px-2 py-0.5 text-[11px] whitespace-nowrap text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100 group-focus:opacity-100 sm:block">
                 {project.name}
               </span>
             </button>

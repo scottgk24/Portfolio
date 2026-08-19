@@ -118,28 +118,4 @@ export const projects: Project[] = [
     accent: "#5b8fa8",
     surface: "#1a1f24",
   },
-  {
-    id: "paws-and-pathways",
-    name: "Paws & Pathways",
-    tagline: "Neighborhood dog-walking bookings",
-    description:
-      "Scheduling site for a summer dog-walking business — online booking with travel buffers, pricing, admin calendar, availability management, and a map of pickup pins.",
-    stack: ["TypeScript", "Next.js", "Neon", "Tailwind"],
-    type: "Web app",
-    href: "https://paws-and-pathways.vercel.app",
-    links: [
-      { label: "Live site", href: "https://paws-and-pathways.vercel.app" },
-    ],
-    logo: {
-      src: "/projects/icons/paws.jpg",
-      alt: "Golden retriever for Paws and Pathways",
-      fill: true,
-    },
-    screenshot: {
-      src: "/projects/screens/paws-and-pathways.png",
-      alt: "Paws and Pathways booking homepage",
-    },
-    accent: "#5f8f6b",
-    surface: "#1e2a22",
-  },
 ];
